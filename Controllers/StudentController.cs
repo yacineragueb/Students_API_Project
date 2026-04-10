@@ -1,7 +1,7 @@
-﻿using Microsoft.AspNetCore.Http;
-using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Mvc;
 using StudentApi.Models;
 using StudentApi.SimulateData;
+using StudentAPIDataAccessLayer;
 
 namespace StudentApi.Controllers
 {
@@ -12,11 +12,12 @@ namespace StudentApi.Controllers
         [HttpGet(Name = "GetAllStudents")]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
-        public ActionResult<IEnumerable<Student>> GetAllStudents()
+        public ActionResult<IEnumerable<StudentDTO>> GetAllStudents()
         {
-            if(SimulateDataStudents.Students.Count == 0) return NotFound("There are no students!");
+            List<StudentDTO> Students = StudentAPIBusinessLayer.Student.GetAllStudents();
+            if (Students.Count == 0) return NotFound("There are no students!");
 
-            return Ok(SimulateDataStudents.Students);
+            return Ok(Students);
         }
 
 

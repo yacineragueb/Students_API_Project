@@ -2,6 +2,12 @@
 /bin
 /obj
 
+# NuGet
+*.nupkg
+*.snupkg
+.nuget/
+packages/
+
 # Environment files
 appsettings.Development.json
 
