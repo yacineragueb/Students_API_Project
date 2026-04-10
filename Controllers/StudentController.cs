@@ -24,7 +24,7 @@ namespace StudentApi.Controllers
         [HttpGet("passed", Name = "GetPassedStudents")]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
-        public ActionResult<IEnumerable<Student>> GetPassedStudents()
+        public ActionResult<IEnumerable<StudentDTO>> GetPassedStudents()
         {
             List<StudentDTO> PassedStudents = StudentAPIBusinessLayer.Student.GetPassedStudents();
 
@@ -53,14 +53,14 @@ namespace StudentApi.Controllers
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
-        public ActionResult<Student> GetStudentByID(int ID)
+        public ActionResult<StudentDTO> GetStudentByID(int ID)
         {
             if(ID < 1)
             {
                 return BadRequest($"You enter an invalid ID: {ID}");
             }
             
-            Student? student = SimulateDataStudents.Students.FirstOrDefault(student => student.Id == ID);
+            StudentAPIBusinessLayer.Student? student = StudentAPIBusinessLayer.Student.GetStudentByID(ID);
 
             if(student == null)
             {
@@ -74,17 +74,18 @@ namespace StudentApi.Controllers
         [HttpPost(Name = "AddNewStudent")]
         [ProducesResponseType(StatusCodes.Status201Created)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
-        public ActionResult<Student> AddNewStudent(Student student)
+        public ActionResult<StudentDTO> AddNewStudent(StudentDTO student)
         {
             if(student == null || string.IsNullOrEmpty(student.Name) || student.Age < 0 || student.Grade < 0)
             {
                 return BadRequest("Invalid Student Data.");
             }
 
-            student.Id = SimulateDataStudents.Students.Count > 0 ? SimulateDataStudents.Students.Max(student => student.Id) + 1 : 1;
-            SimulateDataStudents.Students.Add(student);
+            StudentAPIBusinessLayer.Student NewStudent = new StudentAPIBusinessLayer.Student(student);
 
-            return CreatedAtRoute("GetStudentByID", new { ID = student.Id }, student);
+            NewStudent.Save();
+
+            return CreatedAtRoute("GetStudentByID", new { ID = student.ID }, NewStudent);
         }
 
 
@@ -99,15 +100,21 @@ namespace StudentApi.Controllers
                 return BadRequest("Invalid ID!");
             }
 
-            Student? student = SimulateDataStudents.Students.FirstOrDefault(s => s.Id == ID);
+            StudentAPIBusinessLayer.Student? student = StudentAPIBusinessLayer.Student.GetStudentByID(ID);
 
-            if(student == null)
+            if (student == null)
             {
                 return NotFound("Student With ID = " + ID + " Not Found!");
             }
 
-            SimulateDataStudents.Students.Remove(student);
-            return Ok("Student deleted successfully.");
+            if(student.Delete())
+            {
+                return Ok("Student deleted successfully.");
+            } else
+            {
+                return BadRequest("Failed to delete student!");
+            }
+
         }
 
 
@@ -116,14 +123,14 @@ namespace StudentApi.Controllers
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
 
-        public ActionResult<Student> UpdateStudent(int ID, Student updatedStudent)
+        public ActionResult<StudentDTO> UpdateStudent(int ID, StudentDTO updatedStudent)
         {
             if(ID < 0 || updatedStudent == null || updatedStudent.Age < 0 || updatedStudent.Grade < 0 || string.IsNullOrEmpty(updatedStudent.Name))
             {
                 return BadRequest("Invalid ID!");
             }
 
-            Student? student = SimulateDataStudents.Students.FirstOrDefault(s => s.Id == ID);
+            StudentAPIBusinessLayer.Student? student = StudentAPIBusinessLayer.Student.GetStudentByID(ID);
 
             if(student == null)
             {
@@ -133,6 +140,8 @@ namespace StudentApi.Controllers
             student.Name = updatedStudent.Name;
             student.Age = updatedStudent.Age;
             student.Grade = updatedStudent.Grade;
+
+            student.Save();
 
             return Ok(student);
         }
