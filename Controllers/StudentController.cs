@@ -1,7 +1,6 @@
 ﻿using Microsoft.AspNetCore.Mvc;
-using StudentApi.Models;
-using StudentApi.SimulateData;
 using StudentAPIDataAccessLayer;
+using StudentAPIBusinessLayer;
 
 namespace StudentApi.Controllers
 {
@@ -14,7 +13,7 @@ namespace StudentApi.Controllers
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         public ActionResult<IEnumerable<StudentDTO>> GetAllStudents()
         {
-            List<StudentDTO> Students = StudentAPIBusinessLayer.Student.GetAllStudents();
+            List<StudentDTO> Students = Student.GetAllStudents();
             if (Students.Count == 0) return NotFound("There are no students!");
 
             return Ok(Students);
@@ -26,7 +25,7 @@ namespace StudentApi.Controllers
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         public ActionResult<IEnumerable<StudentDTO>> GetPassedStudents()
         {
-            List<StudentDTO> PassedStudents = StudentAPIBusinessLayer.Student.GetPassedStudents();
+            List<StudentDTO> PassedStudents = Student.GetPassedStudents();
 
             if (PassedStudents.Count == 0) return NotFound("There is no student passed");
 
@@ -39,12 +38,12 @@ namespace StudentApi.Controllers
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         public ActionResult<double> GetAverageStudentsGrade()
         {
-            if (StudentAPIBusinessLayer.Student.GetAllStudents().Count == 0)
+            if (Student.GetAllStudents().Count == 0)
             {
                 return NotFound("No student found.");
             }
 
-            double Average = StudentAPIBusinessLayer.Student.GetAverageGrade();
+            double Average = Student.GetAverageGrade();
             return Ok(Average);
         }
 
@@ -60,20 +59,24 @@ namespace StudentApi.Controllers
                 return BadRequest($"You enter an invalid ID: {ID}");
             }
             
-            StudentAPIBusinessLayer.Student? student = StudentAPIBusinessLayer.Student.GetStudentByID(ID);
+            Student? student = Student.Find(ID);
 
             if(student == null)
             {
                 return NotFound("Student with ID = " + ID + " Not found!");
             }
 
-            return Ok(student);
+            StudentDTO studentDTO = student.StudentDTO;
+
+            return Ok(studentDTO);
         }
 
 
         [HttpPost(Name = "AddNewStudent")]
         [ProducesResponseType(StatusCodes.Status201Created)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+
         public ActionResult<StudentDTO> AddNewStudent(StudentDTO student)
         {
             if(student == null || string.IsNullOrEmpty(student.Name) || student.Age < 0 || student.Grade < 0)
@@ -81,11 +84,22 @@ namespace StudentApi.Controllers
                 return BadRequest("Invalid Student Data.");
             }
 
-            StudentAPIBusinessLayer.Student NewStudent = new StudentAPIBusinessLayer.Student(student);
+            Student NewStudent = new Student(student, Student.enMode.AddNew);
 
-            NewStudent.Save();
+            if(NewStudent.Save())
+            {
+                student.ID = NewStudent.ID;
 
-            return CreatedAtRoute("GetStudentByID", new { ID = student.ID }, NewStudent);
+                return CreatedAtRoute("GetStudentByID", new { ID = student.ID }, student);
+
+            } else
+            {
+                return StatusCode
+                    (
+                        StatusCodes.Status500InternalServerError,
+                        new { message = "An internal server error occurred. Please try again later." }
+                    );
+            }
         }
 
 
@@ -93,6 +107,7 @@ namespace StudentApi.Controllers
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
         public ActionResult DeleteStudent(int ID)
         {
             if(ID < 0)
@@ -100,7 +115,7 @@ namespace StudentApi.Controllers
                 return BadRequest("Invalid ID!");
             }
 
-            StudentAPIBusinessLayer.Student? student = StudentAPIBusinessLayer.Student.GetStudentByID(ID);
+            Student? student = Student.Find(ID);
 
             if (student == null)
             {
@@ -112,9 +127,12 @@ namespace StudentApi.Controllers
                 return Ok("Student deleted successfully.");
             } else
             {
-                return BadRequest("Failed to delete student!");
+                return StatusCode
+                    (
+                        StatusCodes.Status500InternalServerError,
+                        new { message = "An internal server error occurred. Please try again later." }
+                    );
             }
-
         }
 
 
@@ -122,6 +140,7 @@ namespace StudentApi.Controllers
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
 
         public ActionResult<StudentDTO> UpdateStudent(int ID, StudentDTO updatedStudent)
         {
@@ -130,7 +149,7 @@ namespace StudentApi.Controllers
                 return BadRequest("Invalid ID!");
             }
 
-            StudentAPIBusinessLayer.Student? student = StudentAPIBusinessLayer.Student.GetStudentByID(ID);
+            Student? student = Student.Find(ID);
 
             if(student == null)
             {
@@ -141,9 +160,18 @@ namespace StudentApi.Controllers
             student.Age = updatedStudent.Age;
             student.Grade = updatedStudent.Grade;
 
-            student.Save();
-
-            return Ok(student);
+            if (student.Save())
+            {
+                return Ok(student.StudentDTO);
+            }
+            else
+            {
+                return StatusCode
+                    (
+                        StatusCodes.Status500InternalServerError,
+                        new { message = "An internal server error occurred. Please try again later." }
+                    );
+            }
         }
     }
 }
