@@ -26,7 +26,7 @@ namespace StudentApi.Controllers
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         public ActionResult<IEnumerable<Student>> GetPassedStudents()
         {
-            List<Student> PassedStudents = SimulateDataStudents.Students.Where(student => student.Grade > 50).ToList();
+            List<StudentDTO> PassedStudents = StudentAPIBusinessLayer.Student.GetPassedStudents();
 
             if (PassedStudents.Count == 0) return NotFound("There is no student passed");
 
@@ -39,12 +39,12 @@ namespace StudentApi.Controllers
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         public ActionResult<double> GetAverageStudentsGrade()
         {
-            if (SimulateDataStudents.Students.Count == 0)
+            if (StudentAPIBusinessLayer.Student.GetAllStudents().Count == 0)
             {
                 return NotFound("No student found.");
             }
 
-            double Average = SimulateDataStudents.Students.Average(student => student.Grade);
+            double Average = StudentAPIBusinessLayer.Student.GetAverageGrade();
             return Ok(Average);
         }
 
