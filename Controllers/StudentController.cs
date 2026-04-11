@@ -76,7 +76,6 @@ namespace StudentApi.Controllers
         [ProducesResponseType(StatusCodes.Status201Created)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-
         public ActionResult<StudentDTO> AddNewStudent(StudentDTO student)
         {
             if(student == null || string.IsNullOrEmpty(student.Name) || student.Age < 0 || student.Grade < 0)
@@ -141,7 +140,6 @@ namespace StudentApi.Controllers
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-
         public ActionResult<StudentDTO> UpdateStudent(int ID, StudentDTO updatedStudent)
         {
             if(ID < 0 || updatedStudent == null || updatedStudent.Age < 0 || updatedStudent.Grade < 0 || string.IsNullOrEmpty(updatedStudent.Name))
@@ -173,5 +171,69 @@ namespace StudentApi.Controllers
                     );
             }
         }
+
+
+        [HttpPost("upload-image")]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        public async Task<ActionResult> UploadFile(IFormFile imageFile)
+        {
+            if (imageFile == null || imageFile.Length == 0)
+            {
+                return BadRequest("No file uploaded");
+            }
+
+            string uploadedDirectory = @"D:\MyUpload";
+
+            string fileName = Guid.NewGuid().ToString() + Path.GetExtension(imageFile.FileName);
+            string filePath = Path.Combine(uploadedDirectory, fileName);
+
+            if(!Directory.Exists(uploadedDirectory))
+            {
+                Directory.CreateDirectory(uploadedDirectory);
+            }
+
+            using (var stream = new FileStream(filePath, FileMode.Create))
+            {
+                await imageFile.CopyToAsync(stream);
+            }
+
+            return Ok(new {filePath});
+        }
+
+
+        [HttpGet("get-image/{fileName}")]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        public ActionResult GetImage(string fileName)
+        {
+            string uploadedDirectory = @"D:\MyUpload";
+            string filePath = Path.Combine(uploadedDirectory, fileName);
+
+            if(!System.IO.File.Exists(filePath))
+            {
+                return NotFound("Image not found!");
+            }
+
+            FileStream imageStream = System.IO.File.OpenRead(filePath);
+            string mimeType = GetMimeType(filePath);
+
+            return File(imageStream, mimeType);
+
+        }
+
+        private string GetMimeType(string filePath)
+        {
+            string extension = Path.GetExtension(filePath).ToLowerInvariant();
+
+            return extension switch
+            {
+                ".jpg" or ".jpeg" => "image/jpeg",
+                ".gif" => "image/gif",
+                ".png" => "image/png",
+                _ => "application/octet-stream"
+            };
+        }
+
     }
 }
