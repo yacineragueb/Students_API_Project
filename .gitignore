@@ -15,3 +15,6 @@ appsettings.Development.json
 .vs
 *.user
 *.suo
+
+# env files
+.env

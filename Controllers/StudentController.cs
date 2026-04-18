@@ -38,11 +38,6 @@ namespace StudentApi.Controllers
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         public ActionResult<double> GetAverageStudentsGrade()
         {
-            if (Student.GetAllStudents().Count == 0)
-            {
-                return NotFound("No student found.");
-            }
-
             double Average = Student.GetAverageGrade();
             return Ok(Average);
         }
@@ -76,12 +71,14 @@ namespace StudentApi.Controllers
         [ProducesResponseType(StatusCodes.Status201Created)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-        public ActionResult<StudentDTO> AddNewStudent(StudentDTO student)
+        public ActionResult<StudentDTO> AddNewStudent(StudentCreateDTO student)
         {
-            if(student == null || string.IsNullOrEmpty(student.Name) || student.Age < 0 || student.Grade < 0)
+            if(student == null || string.IsNullOrEmpty(student.Name) || student.Age < 0 || student.Grade < 0 || string.IsNullOrEmpty(student.Email) || string.IsNullOrEmpty(student.Password) || string.IsNullOrEmpty(student.Role))
             {
                 return BadRequest("Invalid Student Data.");
             }
+
+            student.Password = BCrypt.Net.BCrypt.HashPassword(student.Password);
 
             Student NewStudent = new Student(student, Student.enMode.AddNew);
 
