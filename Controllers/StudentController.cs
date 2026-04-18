@@ -99,39 +99,6 @@ namespace StudentApi.Controllers
         }
 
 
-        [HttpDelete("{ID}", Name = "DeleteStudent")]
-        [ProducesResponseType(StatusCodes.Status200OK)]
-        [ProducesResponseType(StatusCodes.Status400BadRequest)]
-        [ProducesResponseType(StatusCodes.Status404NotFound)]
-        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-        public ActionResult DeleteStudent(int ID)
-        {
-            if(ID < 0)
-            {
-                return BadRequest("Invalid ID!");
-            }
-
-            Student? student = Student.Find(ID);
-
-            if (student == null)
-            {
-                return NotFound("Student With ID = " + ID + " Not Found!");
-            }
-
-            if(student.Delete())
-            {
-                return Ok("Student deleted successfully.");
-            } else
-            {
-                return StatusCode
-                    (
-                        StatusCodes.Status500InternalServerError,
-                        new { message = "An internal server error occurred. Please try again later." }
-                    );
-            }
-        }
-
-
         [HttpPut("{ID}/student", Name = "UpdateStudent")]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
@@ -170,66 +137,37 @@ namespace StudentApi.Controllers
         }
 
 
-        [HttpPost("upload-image")]
+        [HttpDelete("{ID}", Name = "DeleteStudent")]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
-        public async Task<ActionResult> UploadFile(IFormFile imageFile)
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+        public ActionResult DeleteStudent(int ID)
         {
-            if (imageFile == null || imageFile.Length == 0)
+            if (ID < 0)
             {
-                return BadRequest("No file uploaded");
+                return BadRequest("Invalid ID!");
             }
 
-            string uploadedDirectory = @"D:\MyUpload";
+            Student? student = Student.Find(ID);
 
-            string fileName = Guid.NewGuid().ToString() + Path.GetExtension(imageFile.FileName);
-            string filePath = Path.Combine(uploadedDirectory, fileName);
-
-            if(!Directory.Exists(uploadedDirectory))
+            if (student == null)
             {
-                Directory.CreateDirectory(uploadedDirectory);
+                return NotFound("Student With ID = " + ID + " Not Found!");
             }
 
-            using (var stream = new FileStream(filePath, FileMode.Create))
+            if (student.Delete())
             {
-                await imageFile.CopyToAsync(stream);
+                return Ok("Student deleted successfully.");
             }
-
-            return Ok(new {filePath});
-        }
-
-
-        [HttpGet("get-image/{fileName}")]
-        [ProducesResponseType(StatusCodes.Status200OK)]
-        [ProducesResponseType(StatusCodes.Status400BadRequest)]
-        public ActionResult GetImage(string fileName)
-        {
-            string uploadedDirectory = @"D:\MyUpload";
-            string filePath = Path.Combine(uploadedDirectory, fileName);
-
-            if(!System.IO.File.Exists(filePath))
+            else
             {
-                return NotFound("Image not found!");
+                return StatusCode
+                    (
+                        StatusCodes.Status500InternalServerError,
+                        new { message = "An internal server error occurred. Please try again later." }
+                    );
             }
-
-            FileStream imageStream = System.IO.File.OpenRead(filePath);
-            string mimeType = GetMimeType(filePath);
-
-            return File(imageStream, mimeType);
-
-        }
-
-        private string GetMimeType(string filePath)
-        {
-            string extension = Path.GetExtension(filePath).ToLowerInvariant();
-
-            return extension switch
-            {
-                ".jpg" or ".jpeg" => "image/jpeg",
-                ".gif" => "image/gif",
-                ".png" => "image/png",
-                _ => "application/octet-stream"
-            };
         }
 
     }
