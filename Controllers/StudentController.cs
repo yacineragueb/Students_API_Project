@@ -1,9 +1,11 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using StudentAPIDataAccessLayer;
 using StudentAPIBusinessLayer;
+using Microsoft.AspNetCore.Authorization;
 
 namespace StudentApi.Controllers
 {
+    [Authorize]
     [Route("api/students")]
     [ApiController]
     public class StudentController : ControllerBase

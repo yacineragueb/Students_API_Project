@@ -1,8 +1,10 @@
-﻿using Microsoft.AspNetCore.Http;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 
 namespace StudentApi.Controllers
 {
+    [Authorize]
     [Route("api/images")]
     [ApiController]
     public class ImageController : ControllerBase
