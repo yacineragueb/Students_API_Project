@@ -2,6 +2,7 @@
 using StudentAPIDataAccessLayer;
 using StudentAPIBusinessLayer;
 using Microsoft.AspNetCore.Authorization;
+using System.Security.Claims;
 
 namespace StudentApi.Controllers
 {
@@ -10,9 +11,12 @@ namespace StudentApi.Controllers
     [ApiController]
     public class StudentController : ControllerBase
     {
+        [Authorize(Roles = "Admin")]
         [HttpGet(Name = "GetAllStudents")]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+        [ProducesResponseType(StatusCodes.Status403Forbidden)]
         public ActionResult<IEnumerable<StudentDTO>> GetAllStudents()
         {
             List<StudentDTO> Students = Student.GetAllStudents();
@@ -22,6 +26,7 @@ namespace StudentApi.Controllers
         }
 
 
+        [AllowAnonymous]
         [HttpGet("passed", Name = "GetPassedStudents")]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
@@ -35,6 +40,7 @@ namespace StudentApi.Controllers
         }
 
 
+        [AllowAnonymous]
         [HttpGet("average-grade", Name = "GetAverageStudentsGrade")]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
@@ -49,6 +55,8 @@ namespace StudentApi.Controllers
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+        [ProducesResponseType(StatusCodes.Status403Forbidden)]
         public ActionResult<StudentDTO> GetStudentByID(int ID)
         {
             if(ID < 1)
@@ -63,16 +71,30 @@ namespace StudentApi.Controllers
                 return NotFound("Student with ID = " + ID + " Not found!");
             }
 
+            int authenticatedUserID = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier));
+
+            string authenticatedUserRole = User.FindFirstValue(ClaimTypes.Role);
+
+            bool isAdmin = authenticatedUserRole == "Admin";
+
+            if(!isAdmin && authenticatedUserID != ID)
+            {
+                return Forbid();
+            }
+
             StudentDTO studentDTO = student.StudentDTO;
 
             return Ok(studentDTO);
         }
 
 
+        [Authorize(Roles = "Admin")]
         [HttpPost(Name = "AddNewStudent")]
         [ProducesResponseType(StatusCodes.Status201Created)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+        [ProducesResponseType(StatusCodes.Status403Forbidden)]
         public ActionResult<StudentDTO> AddNewStudent(StudentCreateDTO student)
         {
             if(student == null || string.IsNullOrEmpty(student.Name) || student.Age < 0 || student.Grade < 0 || string.IsNullOrEmpty(student.Email) || string.IsNullOrEmpty(student.Password) || string.IsNullOrEmpty(student.Role))
@@ -101,11 +123,14 @@ namespace StudentApi.Controllers
         }
 
 
+        [Authorize(Roles = "Admin")]
         [HttpPut("{ID}/student", Name = "UpdateStudent")]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+        [ProducesResponseType(StatusCodes.Status403Forbidden)]
         public ActionResult<StudentDTO> UpdateStudent(int ID, StudentDTO updatedStudent)
         {
             if(ID < 0 || updatedStudent == null || updatedStudent.Age < 0 || updatedStudent.Grade < 0 || string.IsNullOrEmpty(updatedStudent.Name))
@@ -139,11 +164,14 @@ namespace StudentApi.Controllers
         }
 
 
+        [Authorize(Roles = "Admin")]
         [HttpDelete("{ID}", Name = "DeleteStudent")]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+        [ProducesResponseType(StatusCodes.Status403Forbidden)]
         public ActionResult DeleteStudent(int ID)
         {
             if (ID < 0)
