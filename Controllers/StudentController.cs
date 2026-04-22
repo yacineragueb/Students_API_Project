@@ -57,29 +57,25 @@ namespace StudentApi.Controllers
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         [ProducesResponseType(StatusCodes.Status401Unauthorized)]
         [ProducesResponseType(StatusCodes.Status403Forbidden)]
-        public ActionResult<StudentDTO> GetStudentByID(int ID)
+        public async Task<ActionResult<StudentDTO>> GetStudentByID(int ID, [FromServices] IAuthorizationService authorizationService)
         {
             if(ID < 1)
             {
                 return BadRequest($"You enter an invalid ID: {ID}");
             }
+
+            AuthorizationResult authResult = await authorizationService.AuthorizeAsync(User, ID, "StudentOwnerOrAdmin");
             
-            Student? student = Student.Find(ID);
-
-            if(student == null)
-            {
-                return NotFound("Student with ID = " + ID + " Not found!");
-            }
-
-            int authenticatedUserID = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier));
-
-            string authenticatedUserRole = User.FindFirstValue(ClaimTypes.Role);
-
-            bool isAdmin = authenticatedUserRole == "Admin";
-
-            if(!isAdmin && authenticatedUserID != ID)
+            if(!authResult.Succeeded)
             {
                 return Forbid();
+            }
+
+            Student? student = Student.Find(ID);
+
+            if (student == null)
+            {
+                return NotFound("Student with ID = " + ID + " Not found!");
             }
 
             StudentDTO studentDTO = student.StudentDTO;
