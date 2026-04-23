@@ -4,11 +4,22 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using StudentApi.Authorization;
+using StudentAPIBusinessLayer;
+using StudentAPIDataAccessLayer;
 using System.Text;
 
 Env.Load();
 
 var builder = WebApplication.CreateBuilder(args);
+
+//var student = new StudentCreateDTO(0, "Ragueb Yacine", 22, 18, "yacine@gmail.com", BCrypt.Net.BCrypt.HashPassword("yacine"), "Admin");
+
+//var admin = new Student(student, Student.enMode.AddNew);
+
+//if(!admin.CreateAdmin())
+//{
+//    throw new Exception("Failed to create admin");
+//}
 
 // Add Cors Service
 builder.Services.AddCors(options =>
