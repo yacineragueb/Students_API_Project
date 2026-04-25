@@ -2,9 +2,9 @@
 using Microsoft.AspNetCore.Identity.Data;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.IdentityModel.Tokens;
+using Microsoft.AspNetCore.RateLimiting;
 using StudentApi.DTOs.Auth;
 using StudentAPIBusinessLayer;
-using StudentAPIDataAccessLayer;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Security.Cryptography;
@@ -27,8 +27,10 @@ namespace StudentApi.Controllers
         }
 
         [HttpPost("login", Name = "Login")]
+        [EnableRateLimiting("AuthLimiter")]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+        [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
         public ActionResult Login([FromBody] DTOs.Auth.LoginRequest request)
         {
             Student? student = Student.Find(request.Email);
@@ -87,8 +89,10 @@ namespace StudentApi.Controllers
 
 
         [HttpPost("refresh")]
+        [EnableRateLimiting("AuthLimiter")]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+        [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
         public ActionResult Refresh([FromBody] RefreshTokenRequest request)
         {
             Student? student = Student.Find(request.Email);
