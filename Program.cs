@@ -6,7 +6,6 @@ using Microsoft.OpenApi.Models;
 using StudentApi.Authorization;
 //using StudentAPIBusinessLayer;
 //using StudentAPIDataAccessLayer;
-using Microsoft.AspNetCore.RateLimiting;
 using System.Threading.RateLimiting;
 using System.Text;
 
@@ -69,6 +68,13 @@ builder.Services.AddAuthorization(options =>
 builder.Services.AddRateLimiter(options =>
 {
     options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+
+    options.OnRejected = async (context, token) =>
+    {
+        context.HttpContext.Response.ContentType = "application/json";
+        await context.HttpContext.Response.WriteAsync("{\"message\": \"Too many login attempts. Please try again later.\"}",
+            token);
+    };
 
     options.AddPolicy("AuthLimiter", httpContext =>
     {
@@ -167,17 +173,6 @@ app.UseHttpsRedirection();
 app.UseCors("StudentApiCorsPolicy");
 
 app.UseRateLimiter();
-
-app.Use(async (context, next) =>
-{
-    await next();
-
-    if (context.Response.StatusCode == StatusCodes.Status429TooManyRequests)
-    {
-        await context.Response.WriteAsync("Too many login attempts. Please try again later.");
-    }
-
-});
 
 app.UseAuthentication();
 app.UseAuthorization();
