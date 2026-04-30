@@ -11,6 +11,13 @@ namespace StudentApi.Controllers
     [ApiController]
     public class StudentController : ControllerBase
     {
+        private readonly ILogger<StudentController> _logger;
+
+        public StudentController(ILogger<StudentController> logger)
+        {
+            _logger = logger;
+        }
+
         [Authorize(Roles = "Admin")]
         [HttpGet(Name = "GetAllStudents")]
         [ProducesResponseType(StatusCodes.Status200OK)]
@@ -170,8 +177,19 @@ namespace StudentApi.Controllers
         [ProducesResponseType(StatusCodes.Status403Forbidden)]
         public ActionResult DeleteStudent(int ID)
         {
+            string ip = HttpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown";
+
+            string adminId = User.FindFirstValue(ClaimTypes.NameIdentifier) ?? "unknown";
+
             if (ID < 0)
             {
+                _logger.LogWarning(
+                    "Admin action blocked (invalid id). AdminId={AdminId}, Action=DeleteStudent, TargetId={TargetId}, IP={IP}",
+                    adminId,
+                    ID,
+                    ip
+                );
+
                 return BadRequest("Invalid ID!");
             }
 
@@ -179,15 +197,45 @@ namespace StudentApi.Controllers
 
             if (student == null)
             {
+                _logger.LogWarning(
+                    "Admin action failed (target not found). AdminId={AdminId}, Action=DeleteStudent, TargetId={TargetId}, IP={IP}",
+                    adminId,
+                    ID,
+                    ip
+                );
+
                 return NotFound("Student With ID = " + ID + " Not Found!");
             }
 
+            _logger.LogInformation(
+                "Admin action started. AdminId={AdminId}, Action=DeleteStudent, TargetId={TargetId}, TargetEmail={TargetEmail}, IP={IP}",
+                adminId,
+                student.ID,
+                student.Email,
+                ip
+            );
+
             if (student.Delete())
             {
+
+                _logger.LogInformation(
+                   "Admin action succeeded. AdminId={AdminId}, Action=DeleteStudent, TargetId={TargetId}, IP={IP}",
+                   adminId,
+                   ID,
+                   ip
+                );
+
                 return Ok("Student deleted successfully.");
             }
             else
             {
+                _logger.LogInformation(
+                   "Admin action failed (internal server error). AdminId={AdminId}, Action=DeleteStudent, TargetId={TargetId}, IP={IP}",
+                   adminId,
+                   ID,
+                   ip
+                );
+
                 return StatusCode
                     (
                         StatusCodes.Status500InternalServerError,

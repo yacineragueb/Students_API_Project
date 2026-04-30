@@ -8,6 +8,7 @@ using StudentApi.Authorization;
 //using StudentAPIDataAccessLayer;
 using System.Threading.RateLimiting;
 using System.Text;
+using System.Security.Claims;
 
 
 Env.Load();
@@ -176,6 +177,25 @@ app.UseRateLimiter();
 
 app.UseAuthentication();
 app.UseAuthorization();
+
+app.Use(async (context, next) =>
+{
+    await next();
+
+    if (context.Response.StatusCode == StatusCodes.Status403Forbidden)
+    {
+        string ip = context.Connection.RemoteIpAddress?.ToString() ?? "unknown";
+        string userId = context.User.FindFirstValue(ClaimTypes.NameIdentifier) ?? "anonymous";
+        string path = context.Request.Path.ToString();
+
+        app.Logger.LogWarning(
+            "Forbidden access. UserId={UserId}, Path={Path}, IP={IP}",
+            userId,
+            path,
+            ip
+        );
+    }
+});
 
 app.MapControllers();
 

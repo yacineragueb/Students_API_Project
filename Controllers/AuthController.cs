@@ -16,6 +16,13 @@ namespace StudentApi.Controllers
     [ApiController]
     public class AuthController : ControllerBase
     {
+        private readonly ILogger<AuthController> _logger;
+
+        public AuthController(ILogger<AuthController> logger)
+        {
+            _logger = logger;
+        }
+
         private static string GenerateRefreshToken()
         {
             byte[] bytes = new byte[64];
@@ -33,10 +40,14 @@ namespace StudentApi.Controllers
         [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
         public ActionResult Login([FromBody] DTOs.Auth.LoginRequest request)
         {
+            string ip = HttpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown";
+
             Student? student = Student.Find(request.Email);
 
             if (student == null)
             {
+                _logger.LogWarning("Failed login attempt (email not found). Email={Email}, IP={IP}", request.Email, ip);
+
                 return Unauthorized("Invalid credentials");
             }
 
@@ -44,6 +55,8 @@ namespace StudentApi.Controllers
 
             if (!IsValidPassword)
             {
+                _logger.LogWarning("Failed login attempt (bad password). Email={Email}, IP={IP}", request.Email, ip);
+
                 return Unauthorized("Invalid credentials");
             }
 
@@ -95,26 +108,36 @@ namespace StudentApi.Controllers
         [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
         public ActionResult Refresh([FromBody] RefreshTokenRequest request)
         {
+            string ip = HttpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown";
+
             Student? student = Student.Find(request.Email);
 
             if (student == null)
             {
+                _logger.LogWarning("Failed refresh token attempt (email not found). Email={Email}, IP={IP}", request.Email, ip);
+
                 return Unauthorized("Invalid credentials");
             }
 
             if (student.RefreshTokenRevokedAt != null)
             {
+                _logger.LogWarning("Failed refresh token attempt (refresh token revoked). Email={Email}, IP={IP}", request.Email, ip);
+
                 return Unauthorized("Refresh token is revoked");
             }
 
             if (student.RefreshTokenExpiresAt == null || student.RefreshTokenExpiresAt <= DateTime.UtcNow)
             {
+                _logger.LogWarning("Failed refresh token attempt (refresh token expired). Email={Email}, IP={IP}", request.Email, ip);
+
                 return Unauthorized("Refresh token is expired");
             }
 
             bool isRefreshTokenValid = BCrypt.Net.BCrypt.Verify(request.RefreshToken, student.RefreshTokenHash);
             if(!isRefreshTokenValid)
             {
+                _logger.LogWarning("Failed refresh token attempt (invalid refresh token). Email={Email}, IP={IP}", request.Email, ip);
+
                 return Unauthorized("Invalid refresh token");
             }
 
